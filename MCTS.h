@@ -28,8 +28,32 @@ public:
 			space[i] = action::place(i, who);
 	}
 
+	void playOneSequence(Node root){
+		std::vector<Node> route;
+		route[0] = root;
+		int i = 0;
+		while(1){
+			//check if route[i] is a leaf
+			if(route[i].kids.size() == 0){
+				//if it is a leaf that hasn't been traverse,
+				//expand its kids and then do simulation
+				if(route[i].nb == 0){
+					route[i]
+				}
+				else{
+
+				}
+			}
+		}
+	}
+
 	virtual action take_action(const board& state) {
-		std::shuffle(space.begin(), space.end(), engine);
+		//initialize
+		Node rootNode(state, who);
+
+		//do MCTS
+		playOneSequence(rootNode);
+
 		for (const action::place& move : space) {
 			board after = state;
 			if (move.apply(after) == board::legal)
@@ -46,30 +70,17 @@ private:
 class Node{
 public:
     Node(board b_in, board::piece_type who_in):
-    nb(0), space(board::size_x * board::size_y)
-    {
-        b = b_in;
-        who = who_in;
+    nb(0), value(0), b(b_in), who(who_in), space(board::size_x * board::size_y)
+    {}
 
-        for(size_t i=0;i<space.size();i++){
-            space[i] = action::place(i, who);
-        }
-        //get all legal_moves
-        for (const action::place& move : space) {
-			board after = b_in;
-			if (move.apply(after) == board::legal)
-				legal_moves.push_back(move);
-		}
-    }
+    void new_kids();
 
-    void new_kid(board b_in, board::piece_type who_in);
-
+	std::vector<Node> kids;
 private:
-    std::vector<action::place> space;       //init
-    board::piece_type who;                  //init
+    std::vector<action::place> space;       
+    board::piece_type who;                  
 
-    std::vector<action::place> legal_moves; //init
-    std::vector<Node> kids;
-    board b;                                //init
-    int nb;                                 //init
+	board b;       
+    int value;
+	int nb;                                 
 };
