@@ -16,22 +16,23 @@ Agent with Monte Carlo Tree Search
 #include "agent.h"
 #include "MCTS.h"
 
-Node MCTS::selection(Node parent){
-    std::vector<float> v(parent.kids.size());
+Node * MCTS::selection(Node * parent){
+    std::vector<float> v(parent->kids.size());
     //get the value for each child node
-    for(int i=0;i<parent.kids.size();i++){
+    for(int i=0;i<parent->kids.size();i++){
         //if child has not been traversed before
-        if(parent.kids[i].nb == 0){
+        if(parent->kids[i]->nb == 0){
             v[i] = std::numeric_limits<float>::infinity();
         }
         else{
-            v[i] = -parent.kids[i].value/parent.kids[i].nb + sqrt(2*log(parent.nb)/parent.kids[i].nb);
+            v[i] = (float)(-parent->kids[i]->value)/parent->kids[i]->nb + sqrt(2*log(parent->nb)/parent->kids[i]->nb);
         }
     }
     //get the index of the maximum 
     int max_index = -1;
     float max_value = -std::numeric_limits<float>::infinity();
     for(int i=0;i<v.size();i++){
+        //printf("index : %d, v_vector : %f, value : %d, nb : %d, parent nb : %d\n",i,v[i], parent->kids[i]->value, parent->kids[i]->nb, parent->nb);
         if(v[i] > max_value){
             max_index = i;
             max_value = v[i];
@@ -39,12 +40,13 @@ Node MCTS::selection(Node parent){
     }
     if(max_index == -1) printf("error when selecting max child\n");
 
-    return parent.kids[max_index];
+    //printf("return index : %d\n",max_index);
+    return parent->kids[max_index];
 }
 
-int MCTS::random_simulation(Node start, board::piece_type who_start){
-    board current_board = start.b;
-    board trial = start.b;
+int MCTS::random_simulation(Node * start, board::piece_type who_start){
+    board current_board = start->b;
+    board trial = start->b;
     board::piece_type who_current = who_start;
     std::vector<action::place> space_white(board::size_x * board::size_y);
     std::vector<action::place> space_black(board::size_x * board::size_y);
@@ -91,10 +93,11 @@ int MCTS::random_simulation(Node start, board::piece_type who_start){
     }
 }
 
-void MCTS::update_value(std::vector<Node>& route, float v){
+void MCTS::update_value(std::vector<Node *>& route, float v){
     int route_len = route.size();
     for(int i=route_len-2;i>=0;i--){
-        route[i].value = route[i].value + v;
+        route[i]->value = route[i]->value + v;
+        route[i]->nb = route[i]->nb + 1;
         v = -v;
     }
 }
@@ -118,7 +121,7 @@ void Node::new_kids(){
         for (const action::place& move : space_white) {
             board after = b;
             if (move.apply(after) == board::legal)
-                kids.push_back(Node(after, next_who, move));
+                kids.push_back(new Node(after, next_who, move));
         }
     }
     else{
@@ -126,7 +129,7 @@ void Node::new_kids(){
         for (const action::place& move : space_black) {
             board after = b;
             if (move.apply(after) == board::legal)
-                kids.push_back(Node(after, next_who, move));
+                kids.push_back(new Node(after, next_who, move));
         }
     }
     
