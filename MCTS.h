@@ -42,7 +42,7 @@ public:
 	MCTS(const std::string& args = "") : random_agent("name=random role=unknown " + args),
 		space(board::size_x * board::size_y), who(board::empty) {
 		printf("MCTS player initialized\n");
-		iteration_num = 500;
+		iteration_num = 1000;
 		if (meta.find("T") != meta.end())
 			iteration_num = int(meta["T"]);
 		if (name().find_first_of("[]():; ") != std::string::npos)
@@ -59,7 +59,7 @@ public:
 
 	int random_simulation(Node * start, board::piece_type who_start);
 
-	void update_value(std::vector<Node *>& route, float v);
+	void update_value(std::vector<Node *>& route, int v);
 
 	void playOneSequence(Node* root){
 		int i = 0;
@@ -69,6 +69,7 @@ public:
 		route.push_back(root);
 		while(1){
 			//printf("route : %d\n",i);
+			simulation_value = 0;
 			//check if route[i] is a leaf
 			if(route[i]->kids.size() == 0){
 				//if it is a leaf that hasn't been traverse,
@@ -78,9 +79,12 @@ public:
 					route[i]->new_kids();
 					//printf("number of kids after new_kids : %d\n", (int)route[i]->kids.size());
 					//simulate
-					simulation_value = random_simulation(route[i], route[i]->who);
+					#pragma omp parallel
+					{
+						simulation_value += random_simulation(route[i], route[i]->who);	
+						route[i]->nb += 1;
+					}
 					//update value and nb of the last node
-					route[i]->nb += 1;
 					route[i]->value = simulation_value;
 					//printf("sim_val = %d, nb = %d, value = %d\n", simulation_value, route[i]->nb, route[i]->value);
 				}
@@ -88,7 +92,11 @@ public:
 				else{
 					//printf("it is a leaf that is the end of game\n");
 					//simulate
-					simulation_value = random_simulation(route[i], route[i]->who);
+					#pragma omp parallel
+					{
+						simulation_value += random_simulation(route[i], route[i]->who);	
+						route[i]->nb += 1;
+					}
 					//update value and nb of the last node
 					route[i]->nb += 1;
 					route[i]->value += simulation_value;
@@ -126,7 +134,7 @@ public:
 		//action in rootNode doesn't mean anything
 		Node * rootNode = new Node(state, who, action());
 		//do MCTS
-		for(int i=0;i<500;i++){
+		for(int i=0;i<iteration_num;i++){
 			//printf("iteration : %d\n", i);
 			//printf("playOneSequence\n");
 			playOneSequence(rootNode);

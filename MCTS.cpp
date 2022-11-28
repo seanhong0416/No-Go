@@ -22,7 +22,7 @@ Node * MCTS::selection(Node * parent){
     for(int i=0;i<parent->kids.size();i++){
         //if child has not been traversed before
         if(parent->kids[i]->nb == 0){
-            v[i] = std::numeric_limits<float>::infinity();
+            return parent->kids[i];
         }
         else{
             v[i] = (float)(-parent->kids[i]->value)/parent->kids[i]->nb + sqrt(2*log(parent->nb)/parent->kids[i]->nb);
@@ -93,7 +93,7 @@ int MCTS::random_simulation(Node * start, board::piece_type who_start){
     }
 }
 
-void MCTS::update_value(std::vector<Node *>& route, float v){
+void MCTS::update_value(std::vector<Node *>& route, int v){
     int route_len = route.size();
     for(int i=route_len-2;i>=0;i--){
         route[i]->value = route[i]->value + v;
