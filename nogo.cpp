@@ -16,6 +16,7 @@
 #include "agent.h"
 #include "episode.h"
 #include "statistics.h"
+#include "MCTS.h"
 
 int main(int argc, const char* argv[]) {
 	std::cout << "HollowNoGo-Demo: ";
@@ -69,7 +70,7 @@ int main(int argc, const char* argv[]) {
 		if (stats.is_finished()) stats.summary();
 	}
 
-	player black("name=black " + black_args + " role=black");
+	MCTS black("name=black " + black_args + " role=black");
 	player white("name=white " + white_args + " role=white");
 
 	if (!shell) { // launch standard local games
