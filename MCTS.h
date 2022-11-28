@@ -42,6 +42,9 @@ public:
 	MCTS(const std::string& args = "") : random_agent("name=random role=unknown " + args),
 		space(board::size_x * board::size_y), who(board::empty) {
 		printf("MCTS player initialized\n");
+		iteration_num = 500;
+		if (meta.find("T") != meta.end())
+			iteration_num = int(meta["T"]);
 		if (name().find_first_of("[]():; ") != std::string::npos)
 			throw std::invalid_argument("invalid name: " + name());
 		if (role() == "black") who = board::black;
@@ -110,12 +113,20 @@ public:
 		}
 	}
 
+	void delete_tree(Node * root){
+		int kids_len = root->kids.size();
+		for(int i=0;i<kids_len;i++){
+			delete_tree(root->kids[i]);
+		}
+		delete(root);
+	}
+
 	virtual action take_action(const board& state) {
 		//initialize
 		//action in rootNode doesn't mean anything
 		Node * rootNode = new Node(state, who, action());
 		//do MCTS
-		for(int i=0;i<100;i++){
+		for(int i=0;i<500;i++){
 			//printf("iteration : %d\n", i);
 			//printf("playOneSequence\n");
 			playOneSequence(rootNode);
@@ -134,10 +145,12 @@ public:
 				}
 			}
 			//std::cout << "best action chosen = " << best_action << std::endl;
+			delete_tree(rootNode);
 			return best_action;
 		}
 		else{
 			std::cout << "no moves left" << std::endl;
+			delete_tree(rootNode);
 			return action();
 		}
 	}
@@ -145,4 +158,5 @@ public:
 private:
 	std::vector<action::place> space;
 	board::piece_type who;
+	int iteration_num;
 };

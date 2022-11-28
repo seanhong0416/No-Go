@@ -77,7 +77,7 @@ int MCTS::random_simulation(Node * start, board::piece_type who_start){
         //check if it is the end of the game
         if(possible_boards.size() == 0){
             if(who_current == who_start){
-                return 0;
+                return -1;
             }
             else return 1;
         }
@@ -105,18 +105,14 @@ void MCTS::update_value(std::vector<Node *>& route, float v){
 void Node::new_kids(){
     //need to know the color of player of next state
     board::piece_type next_who;
-    if(who == board::piece_type::black) next_who = board::piece_type::white;
-    else if(who == board::piece_type::white) next_who = board::piece_type::black;
-    else printf("error when choosing next_who\n");
-    std::vector<action::place> space_white(board::size_x * board::size_y);
-    std::vector<action::place> space_black(board::size_x * board::size_y);
-    for (size_t i = 0; i < space_white.size(); i++){
-        space_white[i] = action::place(i, board::piece_type::white);
-        space_black[i] = action::place(i, board::piece_type::black);
-    }
 
     //expand all kids by all legal moves
     if(who == board::piece_type::white){
+        next_who = board::piece_type::black;
+        std::vector<action::place> space_white(board::size_x * board::size_y);
+        for (size_t i = 0; i < space_white.size(); i++){
+            space_white[i] = action::place(i, board::piece_type::white);
+        }
         //printf("enter check illegal move white\n");
         for (const action::place& move : space_white) {
             board after = b;
@@ -125,6 +121,11 @@ void Node::new_kids(){
         }
     }
     else{
+        next_who = board::piece_type::white;
+        std::vector<action::place> space_black(board::size_x * board::size_y);
+        for (size_t i = 0; i < space_black.size(); i++){
+            space_black[i] = action::place(i, board::piece_type::black);
+        }
         //printf("enter check illegal move black\n");
         for (const action::place& move : space_black) {
             board after = b;
