@@ -69,7 +69,6 @@ public:
 		route.push_back(root);
 		while(1){
 			//printf("route : %d\n",i);
-			simulation_value = 0;
 			//check if route[i] is a leaf
 			if(route[i]->kids.size() == 0){
 				//if it is a leaf that hasn't been traverse,
@@ -79,12 +78,9 @@ public:
 					route[i]->new_kids();
 					//printf("number of kids after new_kids : %d\n", (int)route[i]->kids.size());
 					//simulate
-					#pragma omp parallel
-					{
-						simulation_value += random_simulation(route[i], route[i]->who);	
-						route[i]->nb += 1;
-					}
+					simulation_value = random_simulation(route[i], route[i]->who);	
 					//update value and nb of the last node
+					route[i]->nb += 1;
 					route[i]->value = simulation_value;
 					//printf("sim_val = %d, nb = %d, value = %d\n", simulation_value, route[i]->nb, route[i]->value);
 				}
@@ -92,11 +88,7 @@ public:
 				else{
 					//printf("it is a leaf that is the end of game\n");
 					//simulate
-					#pragma omp parallel
-					{
-						simulation_value += random_simulation(route[i], route[i]->who);	
-						route[i]->nb += 1;
-					}
+					simulation_value = random_simulation(route[i], route[i]->who);	
 					//update value and nb of the last node
 					route[i]->nb += 1;
 					route[i]->value += simulation_value;
@@ -157,7 +149,7 @@ public:
 			return best_action;
 		}
 		else{
-			std::cout << "no moves left" << std::endl;
+			std::cout << "MCTS no moves left" << std::endl;
 			delete_tree(rootNode);
 			return action();
 		}

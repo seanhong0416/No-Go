@@ -17,6 +17,7 @@
 #include "episode.h"
 #include "statistics.h"
 #include "MCTS.h"
+#include "MC_RAVE.h"
 
 int main(int argc, const char* argv[]) {
 	std::cout << "HollowNoGo-Demo: ";
@@ -71,7 +72,7 @@ int main(int argc, const char* argv[]) {
 	}
 
 	MCTS black("name=black " + black_args + " role=black");
-	MCTS white("name=white " + white_args + " role=white");
+	MC_RAVE white("name=white " + white_args + " role=white");
 
 	if (!shell) { // launch standard local games
 		while (!stats.is_finished()) {

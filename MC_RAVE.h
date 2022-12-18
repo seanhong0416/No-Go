@@ -15,9 +15,9 @@ Agent with Monte Carlo Tree Search
 #include "action.h"
 #include "agent.h"
 
-class Node{
+class Node_RAVE{
 public:
-    Node(board b_in, board::piece_type who_in, action::place action_in)
+    Node_RAVE(board b_in, board::piece_type who_in, action::place action_in)
     {
 		who = who_in;
 		b = b_in;
@@ -30,7 +30,7 @@ public:
 
 	void new_kids();
 
-	std::vector<Node *> kids;      
+	std::vector<Node_RAVE *> kids;      
     board::piece_type who;                  
 
 	board b;
@@ -45,9 +45,9 @@ class MC_RAVE : public random_agent{
 public:
 	MC_RAVE(const std::string& args = "") : random_agent("name=random role=unknown " + args),
 		space(board::size_x * board::size_y), who(board::empty) {
-		printf("MCTS player initialized\n");
+		printf("MC_RAVE player initialized\n");
 		iteration_num = 1000;
-		equivalence_parameter = 500;
+		equivalence_parameter = 1000;
 		if (meta.find("T") != meta.end())
 			iteration_num = int(meta["T"]);
 		if (meta.find("k") != meta.end())
@@ -62,20 +62,21 @@ public:
 			space[i] = action::place(i, who);
 	}
 
-	Node * selection(Node * parent);
+	Node_RAVE * selection(Node_RAVE * parent);
 
-	int random_simulation(Node * start, board::piece_type who_start);
+	int random_simulation(Node_RAVE * start, board::piece_type who_start);
 
-	void update_value(std::vector<Node *>& route, int v);
+	void update_value(std::vector<Node_RAVE *>& route, int v);
 
-	void playOneSequence(Node* root){
+	void playOneSequence(Node_RAVE* root){
 		int i = 0;
 		int simulation_value;
-		std::vector<Node *> route;
+		std::vector<Node_RAVE *> route;
 		route.clear();
 		route.push_back(root);
 		while(1){
 			//printf("route : %d\n",i);
+			//printf("kids size:%d\n",route[i]->kids.size());
 			//check if route[i] is a leaf
 			if(route[i]->kids.size() == 0){
 				//if it is a leaf that hasn't been traverse,
@@ -111,13 +112,13 @@ public:
 			}
 			//not a leaf, continue selection
 			//printf("select next kid\n");
-			Node * next_kid = selection(route[i]);
+			Node_RAVE * next_kid = selection(route[i]);
 			route.push_back(next_kid);
 			i++;
 		}
 	}
 
-	void print_tree(Node * root, Node * parent){
+	void print_tree(Node_RAVE * root, Node_RAVE * parent){
 		int kids_len = root->kids.size();
 		printf("value : %d, nb : %d, parent value : %d, parent nb : %d\n",root->value,root->nb,parent->value,parent->nb);
 		for(int i=0;i<kids_len;i++){
@@ -125,7 +126,7 @@ public:
 		}
 	}
 
-	void delete_tree(Node * root){
+	void delete_tree(Node_RAVE * root){
 		int kids_len = root->kids.size();
 		for(int i=0;i<kids_len;i++){
 			delete_tree(root->kids[i]);
@@ -136,7 +137,7 @@ public:
 	virtual action take_action(const board& state) {
 		//initialize
 		//action in rootNode doesn't mean anything
-		Node * rootNode = new Node(state, who, action());
+		Node_RAVE * rootNode = new Node_RAVE(state, who, action());
 		//do MCTS
 		for(int i=0;i<iteration_num;i++){
 			//printf("iteration : %d\n", i);
@@ -161,7 +162,7 @@ public:
 			return best_action;
 		}
 		else{
-			std::cout << "no moves left" << std::endl;
+			std::cout << "MC_RAVE no moves left" << std::endl;
 			delete_tree(rootNode);
 			return action();
 		}
