@@ -71,8 +71,8 @@ int main(int argc, const char* argv[]) {
 		if (stats.is_finished()) stats.summary();
 	}
 
-	MCTS black("name=black " + black_args + " role=black");
-	MC_RAVE white("name=white " + white_args + " role=white");
+	MC_RAVE black("name=black " + black_args + " role=black");
+	MCTS white("name=white " + white_args + " role=white");
 
 	if (!shell) { // launch standard local games
 		while (!stats.is_finished()) {

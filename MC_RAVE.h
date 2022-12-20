@@ -3,6 +3,7 @@ Agent with Monte Carlo Tree Search
 */
 
 #pragma once
+#include <omp.h>
 #include <string>
 #include <random>
 #include <sstream>
@@ -84,7 +85,6 @@ public:
 				if(route[i]->nb == 0){
 					//printf("it is a leaf that hasn't been traversed\n");
 					route[i]->new_kids();
-					std::shuffle(route[i]->kids.begin(), route[i]->kids.end(), engine);
 					//printf("number of kids after new_kids : %d\n", (int)route[i]->kids.size());
 					//simulate
 					simulation_value = random_simulation(route[i], route[i]->who);
@@ -138,12 +138,28 @@ public:
 		//initialize
 		//action in rootNode doesn't mean anything
 		Node_RAVE * rootNode = new Node_RAVE(state, who, action());
+		rootNode->new_kids();
+
+		#pragma omp parallel
+		{
+		
+		Node_RAVE * rootThread = new Node_RAVE(state, who, action());
 		//do MCTS
 		for(int i=0;i<iteration_num;i++){
 			//printf("iteration : %d\n", i);
 			//printf("playOneSequence\n");
-			playOneSequence(rootNode);
+			playOneSequence(rootThread);
 		}
+		int rootThread_kids_len = rootThread->kids.size();
+		for(int i=0;i<rootThread->kids.size();i++){
+			//printf("kids : %d, rootNode : %d, rootThread : %d\n",i,rootNode->kids[i]->nb,rootThread->kids[i]->nb);
+			//if(rootThread_kids_len != (int)(rootNode->kids.size()))
+			//	printf("kids length inconsistency\n");
+			rootNode->kids[i]->nb += rootThread->kids[i]->nb;
+		}
+		delete_tree(rootThread);
+
+		}	//end of parallelization
 		//print_tree(rootNode, rootNode);
 		//std::cout << state << std::endl;
 		action::place best_action;

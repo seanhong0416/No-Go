@@ -3,6 +3,7 @@ Agent with Monte Carlo Tree Search
 */
 
 #pragma once
+#include <omp.h>
 #include <string>
 #include <random>
 #include <sstream>
