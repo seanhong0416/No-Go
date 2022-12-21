@@ -4,6 +4,7 @@ Agent with Monte Carlo Tree Search
 
 #pragma once
 #include <omp.h>
+#include <chrono>
 #include <string>
 #include <random>
 #include <sstream>
@@ -46,13 +47,19 @@ class MC_RAVE : public random_agent{
 public:
 	MC_RAVE(const std::string& args = "") : random_agent("name=random role=unknown " + args),
 		space(board::size_x * board::size_y), who(board::empty) {
+
 		printf("MC_RAVE player initialized\n");
 		iteration_num = 1000;
 		equivalence_parameter = 1000;
+		total_time_limit = 39000;
+		total_time_spent = 0;
+
 		if (meta.find("T") != meta.end())
 			iteration_num = int(meta["T"]);
 		if (meta.find("k") != meta.end())
 			equivalence_parameter = int(meta["k"]);
+		if (meta.find("total_time_limit") != meta.end())
+			total_time_limit = time_t(meta["total_time_limit"]);
 		if (name().find_first_of("[]():; ") != std::string::npos)
 			throw std::invalid_argument("invalid name: " + name());
 		if (role() == "black") who = board::black;
@@ -61,6 +68,7 @@ public:
 			throw std::invalid_argument("invalid role: " + role());
 		for (size_t i = 0; i < space.size(); i++)
 			space[i] = action::place(i, who);
+		
 	}
 
 	Node_RAVE * selection(Node_RAVE * parent);
@@ -68,6 +76,10 @@ public:
 	int random_simulation(Node_RAVE * start, board::piece_type who_start);
 
 	void update_value(std::vector<Node_RAVE *>& route, int v);
+
+	void open_episode(const std::string& flag = "") {
+		total_time_spent = 0;
+	}
 
 	void playOneSequence(Node_RAVE* root){
 		int i = 0;
@@ -135,20 +147,35 @@ public:
 	}
 
 	virtual action take_action(const board& state) {
-		//initialize
+		//initialization
 		//action in rootNode doesn't mean anything
 		Node_RAVE * rootNode = new Node_RAVE(state, who, action());
 		rootNode->new_kids();
+		int rootNode_kids_len = (int)rootNode->kids.size();
+		//initialize time
+		time_t round_start_time = get_current_time();
+		time_t round_time_limit = 2*(total_time_limit - total_time_spent)/(int)(rootNode->kids.size());
+		printf("root kids number = %d\n",rootNode_kids_len);
+		printf("round_time_limit = %ld\n",round_time_limit);
+		printf("total_time_spent = %ld\n",total_time_spent);
 
 		#pragma omp parallel
 		{
 		
 		Node_RAVE * rootThread = new Node_RAVE(state, who, action());
+		int iteration_count = 0;
 		//do MCTS
-		for(int i=0;i<iteration_num;i++){
+		while(1){
 			//printf("iteration : %d\n", i);
 			//printf("playOneSequence\n");
 			playOneSequence(rootThread);
+			//check if time runs out
+			//printf("time spent = %ld\n", get_current_time() - round_start_time);
+			if((get_current_time() - round_start_time) > round_time_limit){
+				printf("iteration_count = %d\n",iteration_count);
+				break;
+			}
+			iteration_count++;
 		}
 		int rootThread_kids_len = rootThread->kids.size();
 		for(int i=0;i<rootThread->kids.size();i++){
@@ -160,11 +187,11 @@ public:
 		delete_tree(rootThread);
 
 		}	//end of parallelization
+
 		//print_tree(rootNode, rootNode);
 		//std::cout << state << std::endl;
 		action::place best_action;
 		int best_visit_count = -1;
-		int rootNode_kids_len = (int)rootNode->kids.size();
 		if(rootNode_kids_len != 0){
 			for(int i=0;i<rootNode_kids_len;i++){
 				//printf("kid %d visited %d\n",i,rootNode->kids[i]->nb);
@@ -175,6 +202,8 @@ public:
 			}
 			//std::cout << "best action chosen = " << best_action << std::endl;
 			delete_tree(rootNode);
+			total_time_spent += get_current_time() - round_start_time;
+			printf("total_time_spent = %ld\n",total_time_spent);
 			return best_action;
 		}
 		else{
@@ -184,9 +213,16 @@ public:
 		}
 	}
 
+	time_t get_current_time() {
+		auto now = std::chrono::system_clock::now().time_since_epoch();
+		return std::chrono::duration_cast<std::chrono::milliseconds>(now).count();
+	}
+
 private:
 	std::vector<action::place> space;
 	board::piece_type who;
 	int iteration_num;
 	int equivalence_parameter;
+	time_t total_time_limit;
+	time_t total_time_spent;
 };
