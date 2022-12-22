@@ -17,32 +17,32 @@ Agent with Monte Carlo Tree Search
 #include "agent.h"
 #include "MC_RAVE.h"
 
-Node_RAVE * MC_RAVE::selection(Node_RAVE * parent){
-    std::vector<float> v(parent->kids.size());
+std::shared_ptr<Node_RAVE> MC_RAVE::selection(Node_RAVE * parent){
+    std::vector<float> v(parent->kids->size());
     float move_mean;
     float RAVE_mean;
     float MC_RAVE_weight;
     //get the value for each child node
-    for(int i=0;i<parent->kids.size();i++){
+    for(int i=0;i<parent->kids->size();i++){
         //if child has not been traversed before
-        if(parent->kids[i]->nb == 0){
-            return parent->kids[i];
+        if(parent->kids->operator[](i)->nb == 0){
+            return parent->kids->operator[](i);
         }
         else{
-            move_mean = (float)(-parent->kids[i]->value)/parent->kids[i]->nb;
-            RAVE_mean = (float)(-parent->kids[i]->RAVE_value)/parent->kids[i]->RAVE_nb;
+            move_mean = (float)(-parent->kids->operator[](i)->value)/parent->kids->operator[](i)->nb;
+            RAVE_mean = (float)(-parent->kids->operator[](i)->RAVE_value)/parent->kids->operator[](i)->RAVE_nb;
             MC_RAVE_weight = sqrt((float)(equivalence_parameter)/(3*parent->nb+equivalence_parameter));
             //if(move_mean != RAVE_mean)
-            //    printf("move_mean = %f, RAVE_mean = %f, move_value = %d, move_nb = %d, RAVE_value = %d, RAVE_nb = %d\n", move_mean, RAVE_mean, parent->kids[i]->value, parent->kids[i]->nb, parent->kids[i]->RAVE_value, parent->kids[i]->RAVE_nb);
+            //    printf("move_mean = %f, RAVE_mean = %f, move_value = %d, move_nb = %d, RAVE_value = %d, RAVE_nb = %d\n", move_mean, RAVE_mean, parent->kids->operator[](i)->value, parent->kids->operator[](i)->nb, parent->kids->operator[](i)->RAVE_value, parent->kids->operator[](i)->RAVE_nb);
             //printf("MC_RAVE_WEIGHT:%f\n",MC_RAVE_weight);
-            v[i] = (1-MC_RAVE_weight)*move_mean + MC_RAVE_weight*RAVE_mean + sqrt(2*log(parent->nb)/parent->kids[i]->nb);
+            v[i] = (1-MC_RAVE_weight)*move_mean + MC_RAVE_weight*RAVE_mean + sqrt(2*log(parent->nb)/parent->kids->operator[](i)->nb);
         }
     }
     //get the index of the maximum 
     int max_index = -1;
     float max_value = -std::numeric_limits<float>::infinity();
     for(int i=0;i<v.size();i++){
-        //printf("index : %d, v_vector : %f, value : %d, RAVE_value : %d, nb : %d, RAVE nb : %d, parent nb : %d\n",i,v[i], parent->kids[i]->value, parent->kids[i]->RAVE_value, parent->kids[i]->nb, parent->kids[i]->RAVE_nb , parent->nb);
+        //printf("index : %d, v_vector : %f, value : %d, RAVE_value : %d, nb : %d, RAVE nb : %d, parent nb : %d\n",i,v[i], parent->kids->operator[](i)->value, parent->kids->operator[](i)->RAVE_value, parent->kids->operator[](i)->nb, parent->kids->operator[](i)->RAVE_nb , parent->nb);
         if(v[i] > max_value){
             max_index = i;
             max_value = v[i];
@@ -51,7 +51,7 @@ Node_RAVE * MC_RAVE::selection(Node_RAVE * parent){
     if(max_index == -1) printf("error when selecting max child\n");
 
     //printf("return index : %d\n",max_index);
-    return parent->kids[max_index];
+    return parent->kids->operator[](max_index);
 }
 
 int MC_RAVE::random_simulation(Node_RAVE * start, board::piece_type who_start){
@@ -123,13 +123,13 @@ void MC_RAVE::update_value(std::vector<Node_RAVE *>& route, int v){
         for(int j=RAVE_action_len-3;j>=0;j-=2){
             //std::cout << RAVE_action[j] << std::endl;
             //see if any children of this node took the same actions
-            int kids_len = route[i]->kids.size();
+            int kids_len = route[i]->kids->size();
             for(int k=0;k<kids_len;k++){
-                if(route[i]->kids[k]->action_taken == RAVE_action[j]){
+                if(route[i]->kids->operator[](k)->action_taken == RAVE_action[j]){
                     //-v because it is the value of next state
                     //printf("update RAVE values\n");
-                    route[i]->kids[k]->RAVE_value -= v;
-                    route[i]->kids[k]->RAVE_nb += 1;
+                    route[i]->kids->operator[](k)->RAVE_value -= v;
+                    route[i]->kids->operator[](k)->RAVE_nb += 1;
                 }
             }
         }
@@ -137,15 +137,15 @@ void MC_RAVE::update_value(std::vector<Node_RAVE *>& route, int v){
         for(int j=RAVE_action_len-2;j>=0;j-=2){
             //std::cout << RAVE_action[j] << std::endl;;
             //see if any children of this node took the same actions
-            int kids_len = route[i]->kids.size();
+            int kids_len = route[i]->kids->size();
             for(int k=0;k<kids_len;k++){
                 //switch the opponent's move
                 
-                if(route[i]->kids[k]->action_taken == RAVE_action[j]){
+                if(route[i]->kids->operator[](k)->action_taken == RAVE_action[j]){
                     //-v because it is the value of next state
                     printf("update RAVE values\n");
-                    route[i]->kids[k]->RAVE_value -= v;
-                    route[i]->kids[k]->RAVE_nb += 1;
+                    route[i]->kids->operator[](k)->RAVE_value -= v;
+                    route[i]->kids->operator[](k)->RAVE_nb += 1;
                 }
             }
         }
@@ -161,6 +161,7 @@ void MC_RAVE::update_value(std::vector<Node_RAVE *>& route, int v){
 void Node_RAVE::new_kids(){
     //need to know the color of player of next state
     board::piece_type next_who;
+    std::shared_ptr< std::vector< std::shared_ptr<Node_RAVE> > > local_vector = std::make_shared< std::vector< std::shared_ptr<Node_RAVE> > >();
 
     //expand all kids by all legal moves
     if(who == board::piece_type::white){
@@ -173,7 +174,7 @@ void Node_RAVE::new_kids(){
         for (const action::place& move : space_white) {
             board after = b;
             if (move.apply(after) == board::legal)
-                kids.push_back(new Node_RAVE(after, next_who, move));
+                local_vector->push_back(std::make_shared<Node_RAVE>(after, next_who, move));
         }
     }
     else{
@@ -186,12 +187,13 @@ void Node_RAVE::new_kids(){
         for (const action::place& move : space_black) {
             board after = b;
             if (move.apply(after) == board::legal)
-                kids.push_back(new Node_RAVE(after, next_who, move));
+                local_vector->push_back(std::make_shared<Node_RAVE>(after, next_who, move));
         }
 
     }
     
-    //printf("size of kids : %d\n",kids.size());
+    kids = local_vector;
+    //printf("size of kids : %d\n",kids->size());
 
     return;
 }

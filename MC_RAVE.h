@@ -16,6 +16,7 @@ Agent with Monte Carlo Tree Search
 #include "board.h"
 #include "action.h"
 #include "agent.h"
+#include <memory>
 
 class Node_RAVE{
 public:
@@ -24,23 +25,25 @@ public:
 		who = who_in;
 		b = b_in;
 		action_taken = action_in;
-		value = 0;
-		nb = 0;
 		RAVE_value = 0;
 		RAVE_nb = 0;
+		value = 0;
+		nb = 0;
+		kids = NULL;
 	}
 
 	void new_kids();
 
-	std::vector<Node_RAVE *> kids;      
-    board::piece_type who;                  
+	std::shared_ptr< std::vector< std::shared_ptr<Node_RAVE> > > kids;
 
+    board::piece_type who;                  
 	board b;
 	action::place action_taken;
-    int value;
-	int nb;
-	int RAVE_value;
-	int RAVE_nb;                      
+
+    volatile int value;
+	volatile int nb;
+	volatile int RAVE_value;
+	volatile int RAVE_nb;                  
 };
 
 class MC_RAVE : public random_agent{
@@ -75,27 +78,27 @@ public:
 		
 	}
 
-	Node_RAVE * selection(Node_RAVE * parent);
+	std::shared_ptr<Node_RAVE> selection(std::shared_ptr<Node_RAVE> parent);
 
-	int random_simulation(Node_RAVE * start, board::piece_type who_start);
+	int random_simulation(std::shared_ptr<Node_RAVE> start, board::piece_type who_start);
 
-	void update_value(std::vector<Node_RAVE *>& route, int v);
+	void update_value(std::vector<std::shared_ptr<Node_RAVE> >& route, int v);
 
 	void open_episode(const std::string& flag = "") {
 		total_time_spent = 0;
 	}
 
-	void playOneSequence(Node_RAVE* root){
+	void playOneSequence(std::shared_ptr<Node_RAVE> root){
 		int i = 0;
 		int simulation_value;
-		std::vector<Node_RAVE *> route;
+		std::vector<std::shared_ptr<Node_RAVE>> route;
 		route.clear();
 		route.push_back(root);
 		while(1){
 			//printf("route : %d\n",i);
 			//printf("kids size:%d\n",route[i]->kids.size());
 			//check if route[i] is a leaf
-			if(route[i]->kids.size() == 0){
+			if(route[i]->kids->size() == 0){
 				//if it is a leaf that hasn't been traverse,
 				//expand its kids and then do simulation
 				if(route[i]->nb == 0){
@@ -128,34 +131,36 @@ public:
 			}
 			//not a leaf, continue selection
 			//printf("select next kid\n");
-			Node_RAVE * next_kid = selection(route[i]);
+			std::shared_ptr<Node_RAVE> next_kid = selection(route[i]);
 			route.push_back(next_kid);
 			i++;
 		}
 	}
 
-	void print_tree(Node_RAVE * root, Node_RAVE * parent){
-		int kids_len = root->kids.size();
+	void print_tree(std::shared_ptr<Node_RAVE> root, std::shared_ptr<Node_RAVE> parent){
+		int kids_len = root->kids->size();
 		printf("value : %d, nb : %d, parent value : %d, parent nb : %d\n",root->value,root->nb,parent->value,parent->nb);
 		for(int i=0;i<kids_len;i++){
-			print_tree(root->kids[i], root);
+			print_tree(root->kids->operator[](i), root);
 		}
 	}
 
-	void delete_tree(Node_RAVE * root){
-		int kids_len = root->kids.size();
+	/*
+	void delete_tree(std::shared_ptr<Node_RAVE> root){
+		int kids_len = root->kids->size();
 		for(int i=0;i<kids_len;i++){
-			delete_tree(root->kids[i]);
+			delete_tree(root->kids->operator[](i));
 		}
 		delete(root);
 	}
+	*/
 
 	virtual action take_action(const board& state) {
 		//initialization
 		//action in rootNode doesn't mean anything
 		Node_RAVE * rootNode = new Node_RAVE(state, who, action());
 		rootNode->new_kids();
-		int rootNode_kids_len = (int)rootNode->kids.size();
+		int rootNode_kids_len = (int)rootNode->kids->size();
 		//initialize time
 		time_t round_start_time = get_current_time();
 		time_t round_time_limit = 2*(total_time_limit - total_time_spent)/rootNode_kids_len;
