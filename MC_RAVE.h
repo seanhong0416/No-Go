@@ -53,6 +53,10 @@ public:
 		equivalence_parameter = 1000;
 		total_time_limit = 39000;
 		total_time_spent = 0;
+		open_ratio = 2;
+		open_step = 25;
+		mid_ratio = 1.5;
+		mid_step = 10;
 
 		if (meta.find("T") != meta.end())
 			iteration_num = int(meta["T"]);
@@ -154,7 +158,11 @@ public:
 		int rootNode_kids_len = (int)rootNode->kids.size();
 		//initialize time
 		time_t round_start_time = get_current_time();
-		time_t round_time_limit = 2*(total_time_limit - total_time_spent)/(int)(rootNode->kids.size());
+		time_t round_time_limit = 2*(total_time_limit - total_time_spent)/rootNode_kids_len;
+		if(rootNode_kids_len >= open_step)
+			round_time_limit *= open_ratio;
+		if(rootNode_kids_len >= mid_step)
+			round_time_limit *= mid_ratio;
 		printf("root kids number = %d\n",rootNode_kids_len);
 		printf("round_time_limit = %ld\n",round_time_limit);
 		printf("total_time_spent = %ld\n",total_time_spent);
@@ -203,7 +211,7 @@ public:
 			//std::cout << "best action chosen = " << best_action << std::endl;
 			delete_tree(rootNode);
 			total_time_spent += get_current_time() - round_start_time;
-			printf("total_time_spent = %ld\n",total_time_spent);
+			//printf("total_time_spent = %ld\n",total_time_spent);
 			return best_action;
 		}
 		else{
@@ -225,4 +233,8 @@ private:
 	int equivalence_parameter;
 	time_t total_time_limit;
 	time_t total_time_spent;
+	float open_ratio;
+	float mid_ratio;
+	int open_step;
+	int mid_step;
 };
