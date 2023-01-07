@@ -3,6 +3,7 @@ Agent with Monte Carlo Tree Search
 */
 
 #pragma once
+#include <atomic>
 #include <omp.h>
 #include <chrono>
 #include <string>
@@ -40,10 +41,10 @@ public:
 	board b;
 	action::place action_taken;
 
-    volatile int value;
-	volatile int nb;
-	volatile int RAVE_value;
-	volatile int RAVE_nb;                  
+    std::atomic<volatile int> value;
+	std::atomic<volatile int> nb;
+	std::atomic<volatile int> RAVE_value;
+	std::atomic<volatile int> RAVE_nb;                  
 };
 
 class MC_RAVE : public random_agent{
@@ -108,10 +109,10 @@ public:
 					//simulate
 					simulation_value = random_simulation(route[i], route[i]->who);
 					//update value and nb of the last node
-					route[i]->nb += 1;
+					route[i]->nb = route[i]->nb + 1;
 					route[i]->value = simulation_value;
-					route[i]->RAVE_nb += 1;
-					route[i]->RAVE_value += simulation_value;
+					route[i]->RAVE_nb = route[i]->RAVE_nb + 1;
+					route[i]->RAVE_value = route[i]->RAVE_value + simulation_value;
 					//printf("sim_val = %d, nb = %d, value = %d\n", simulation_value, route[i]->nb, route[i]->value);
 				}
 				//else it is the end of the game
@@ -120,10 +121,10 @@ public:
 					//simulate
 					simulation_value = random_simulation(route[i], route[i]->who);	
 					//update value and nb of the last node
-					route[i]->nb += 1;
-					route[i]->value += simulation_value;
-					route[i]->RAVE_nb += 1;
-					route[i]->RAVE_value += simulation_value;
+					route[i]->nb = route[i]->nb + 1;
+					route[i]->value = route[i]->value + simulation_value;
+					route[i]->RAVE_nb = route[i]->RAVE_nb + 1;
+					route[i]->RAVE_value = route[i]->RAVE_value + simulation_value;
 				}
 				//update the value of each node in the route
 				update_value(route, -simulation_value);
@@ -158,7 +159,8 @@ public:
 	virtual action take_action(const board& state) {
 		//initialization
 		//action in rootNode doesn't mean anything
-		Node_RAVE * rootNode = new Node_RAVE(state, who, action());
+		int iteration_count = 0;
+		std::shared_ptr<Node_RAVE> rootNode = std::make_shared<Node_RAVE>(state, who, action());
 		rootNode->new_kids();
 		int rootNode_kids_len = (int)rootNode->kids->size();
 		//initialize time
@@ -175,13 +177,11 @@ public:
 		#pragma omp parallel
 		{
 		
-		Node_RAVE * rootThread = new Node_RAVE(state, who, action());
-		int iteration_count = 0;
 		//do MCTS
 		while(1){
 			//printf("iteration : %d\n", i);
 			//printf("playOneSequence\n");
-			playOneSequence(rootThread);
+			playOneSequence(rootNode);
 			//check if time runs out
 			//printf("time spent = %ld\n", get_current_time() - round_start_time);
 			if((get_current_time() - round_start_time) > round_time_limit){
@@ -190,14 +190,6 @@ public:
 			}
 			iteration_count++;
 		}
-		int rootThread_kids_len = rootThread->kids.size();
-		for(int i=0;i<rootThread->kids.size();i++){
-			//printf("kids : %d, rootNode : %d, rootThread : %d\n",i,rootNode->kids[i]->nb,rootThread->kids[i]->nb);
-			//if(rootThread_kids_len != (int)(rootNode->kids.size()))
-			//	printf("kids length inconsistency\n");
-			rootNode->kids[i]->nb += rootThread->kids[i]->nb;
-		}
-		delete_tree(rootThread);
 
 		}	//end of parallelization
 
@@ -208,20 +200,18 @@ public:
 		if(rootNode_kids_len != 0){
 			for(int i=0;i<rootNode_kids_len;i++){
 				//printf("kid %d visited %d\n",i,rootNode->kids[i]->nb);
-				if(rootNode->kids[i]->nb > best_visit_count){
-					best_visit_count = rootNode->kids[i]->nb;
-					best_action = rootNode->kids[i]->action_taken;
+				if(rootNode->kids->operator[](i)->nb > best_visit_count){
+					best_visit_count = rootNode->kids->operator[](i)->nb;
+					best_action = rootNode->kids->operator[](i)->action_taken;
 				}
 			}
 			//std::cout << "best action chosen = " << best_action << std::endl;
-			delete_tree(rootNode);
 			total_time_spent += get_current_time() - round_start_time;
 			//printf("total_time_spent = %ld\n",total_time_spent);
 			return best_action;
 		}
 		else{
 			std::cout << "MC_RAVE no moves left" << std::endl;
-			delete_tree(rootNode);
 			return action();
 		}
 	}

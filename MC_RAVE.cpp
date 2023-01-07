@@ -17,7 +17,7 @@ Agent with Monte Carlo Tree Search
 #include "agent.h"
 #include "MC_RAVE.h"
 
-std::shared_ptr<Node_RAVE> MC_RAVE::selection(Node_RAVE * parent){
+std::shared_ptr<Node_RAVE> MC_RAVE::selection(std::shared_ptr<Node_RAVE> parent){
     std::vector<float> v(parent->kids->size());
     float move_mean;
     float RAVE_mean;
@@ -35,7 +35,7 @@ std::shared_ptr<Node_RAVE> MC_RAVE::selection(Node_RAVE * parent){
             //if(move_mean != RAVE_mean)
             //    printf("move_mean = %f, RAVE_mean = %f, move_value = %d, move_nb = %d, RAVE_value = %d, RAVE_nb = %d\n", move_mean, RAVE_mean, parent->kids->operator[](i)->value, parent->kids->operator[](i)->nb, parent->kids->operator[](i)->RAVE_value, parent->kids->operator[](i)->RAVE_nb);
             //printf("MC_RAVE_WEIGHT:%f\n",MC_RAVE_weight);
-            v[i] = (1-MC_RAVE_weight)*move_mean + MC_RAVE_weight*RAVE_mean + sqrt(2*log(parent->nb)/parent->kids->operator[](i)->nb);
+            v[i] = (1-MC_RAVE_weight)*move_mean + MC_RAVE_weight*RAVE_mean + sqrt(2*log(parent->nb.load())/parent->kids->operator[](i)->nb);
         }
     }
     //get the index of the maximum 
@@ -54,7 +54,7 @@ std::shared_ptr<Node_RAVE> MC_RAVE::selection(Node_RAVE * parent){
     return parent->kids->operator[](max_index);
 }
 
-int MC_RAVE::random_simulation(Node_RAVE * start, board::piece_type who_start){
+int MC_RAVE::random_simulation(std::shared_ptr<Node_RAVE> start, board::piece_type who_start){
     board current_board = start->b;
     board trial = start->b;
     board::piece_type who_current = who_start;
@@ -103,7 +103,7 @@ int MC_RAVE::random_simulation(Node_RAVE * start, board::piece_type who_start){
     }
 }
 
-void MC_RAVE::update_value(std::vector<Node_RAVE *>& route, int v){
+void MC_RAVE::update_value(std::vector<std::shared_ptr<Node_RAVE>>& route, int v){
     int route_len = route.size();
     std::vector<action::place> RAVE_action;
     if(route_len != 0)
@@ -114,10 +114,10 @@ void MC_RAVE::update_value(std::vector<Node_RAVE *>& route, int v){
         //printf("current last_action = ");
         //std::cout << RAVE_action.back() << std::endl;
         //update move/RAVE value
-        route[i]->value += v;
-        route[i]->nb += 1;
-        route[i]->RAVE_value += v;
-        route[i]->RAVE_nb += 1;
+        route[i]->value = route[i]->value + v;
+        route[i]->nb = route[i]->nb + 1;
+        route[i]->RAVE_value = route[i]->RAVE_value + v;
+        route[i]->RAVE_nb = route[i]->RAVE_nb + 1;
         //printf("current i = %d\n",i);
         //update RAVE value
         for(int j=RAVE_action_len-3;j>=0;j-=2){
@@ -128,8 +128,8 @@ void MC_RAVE::update_value(std::vector<Node_RAVE *>& route, int v){
                 if(route[i]->kids->operator[](k)->action_taken == RAVE_action[j]){
                     //-v because it is the value of next state
                     //printf("update RAVE values\n");
-                    route[i]->kids->operator[](k)->RAVE_value -= v;
-                    route[i]->kids->operator[](k)->RAVE_nb += 1;
+                    route[i]->kids->operator[](k)->RAVE_value = route[i]->kids->operator[](k)->RAVE_value - v;
+                    route[i]->kids->operator[](k)->RAVE_nb = route[i]->kids->operator[](k)->RAVE_nb + 1;
                 }
             }
         }
