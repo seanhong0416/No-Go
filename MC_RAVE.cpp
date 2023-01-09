@@ -23,7 +23,7 @@ std::shared_ptr<Node_RAVE> MC_RAVE::selection(std::shared_ptr<Node_RAVE> parent)
     float RAVE_mean;
     float MC_RAVE_weight;
     //get the value for each child node
-    for(int i=0;i<parent->kids->size();i++){
+    for(long unsigned int i=0;i<parent->kids->size();i++){
         //if child has not been traversed before
         if(parent->kids->operator[](i)->nb == 0){
             return parent->kids->operator[](i);
@@ -41,7 +41,7 @@ std::shared_ptr<Node_RAVE> MC_RAVE::selection(std::shared_ptr<Node_RAVE> parent)
     //get the index of the maximum 
     int max_index = -1;
     float max_value = -std::numeric_limits<float>::infinity();
-    for(int i=0;i<v.size();i++){
+    for(long unsigned int i=0;i<v.size();i++){
         //printf("index : %d, v_vector : %f, value : %d, RAVE_value : %d, nb : %d, RAVE nb : %d, parent nb : %d\n",i,v[i], parent->kids->operator[](i)->value, parent->kids->operator[](i)->RAVE_value, parent->kids->operator[](i)->nb, parent->kids->operator[](i)->RAVE_nb , parent->nb);
         if(v[i] > max_value){
             max_index = i;

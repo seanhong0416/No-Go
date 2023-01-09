@@ -41,10 +41,10 @@ public:
 	board b;
 	action::place action_taken;
 
-    std::atomic<volatile int> value;
-	std::atomic<volatile int> nb;
-	std::atomic<volatile int> RAVE_value;
-	std::atomic<volatile int> RAVE_nb;                  
+    volatile std::atomic<int> value;
+	volatile std::atomic<int> nb;
+	volatile std::atomic<int> RAVE_value;
+	volatile std::atomic<int> RAVE_nb;                  
 };
 
 class MC_RAVE : public random_agent{
@@ -103,9 +103,9 @@ public:
 				//if it is a leaf that hasn't been traverse,
 				//expand its kids and then do simulation
 				if(route[i]->nb == 0){
-					//printf("it is a leaf that hasn't been traversed\n");
+					printf("it is a leaf that hasn't been traversed\n");
 					route[i]->new_kids();
-					//printf("number of kids after new_kids : %d\n", (int)route[i]->kids.size());
+					printf("number of kids after new_kids : %d\n", (int)route[i]->kids->size());
 					//simulate
 					simulation_value = random_simulation(route[i], route[i]->who);
 					//update value and nb of the last node
@@ -113,11 +113,11 @@ public:
 					route[i]->value = simulation_value;
 					route[i]->RAVE_nb = route[i]->RAVE_nb + 1;
 					route[i]->RAVE_value = route[i]->RAVE_value + simulation_value;
-					//printf("sim_val = %d, nb = %d, value = %d\n", simulation_value, route[i]->nb, route[i]->value);
+					printf("sim_val = %d, nb = %d, value = %d\n", simulation_value, route[i]->nb.load(), route[i]->value.load());
 				}
 				//else it is the end of the game
 				else{
-					//printf("it is a leaf that is the end of game\n");
+					printf("it is a leaf that is the end of game\n");
 					//simulate
 					simulation_value = random_simulation(route[i], route[i]->who);	
 					//update value and nb of the last node
@@ -131,7 +131,7 @@ public:
 				break;
 			}
 			//not a leaf, continue selection
-			//printf("select next kid\n");
+			printf("select next kid\n");
 			std::shared_ptr<Node_RAVE> next_kid = selection(route[i]);
 			route.push_back(next_kid);
 			i++;
@@ -140,7 +140,7 @@ public:
 
 	void print_tree(std::shared_ptr<Node_RAVE> root, std::shared_ptr<Node_RAVE> parent){
 		int kids_len = root->kids->size();
-		printf("value : %d, nb : %d, parent value : %d, parent nb : %d\n",root->value,root->nb,parent->value,parent->nb);
+		printf("value : %d, nb : %d, parent value : %d, parent nb : %d\n",root->value.load(),root->nb.load(),parent->value.load(),parent->nb.load());
 		for(int i=0;i<kids_len;i++){
 			print_tree(root->kids->operator[](i), root);
 		}
@@ -180,7 +180,7 @@ public:
 		//do MCTS
 		while(1){
 			//printf("iteration : %d\n", i);
-			//printf("playOneSequence\n");
+			printf("playOneSequence\n");
 			playOneSequence(rootNode);
 			//check if time runs out
 			//printf("time spent = %ld\n", get_current_time() - round_start_time);
